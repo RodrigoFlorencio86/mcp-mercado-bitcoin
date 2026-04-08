@@ -1,10 +1,10 @@
 {
   "name": "mcp-mercado-bitcoin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP Server for Mercado Bitcoin — trade, monitor and manage your crypto portfolio via any LLM or AI agent",
   "type": "module",
   "bin": {
-    "mcp-mercado-bitcoin": "./build/index.js"
+    "mcp-mercado-bitcoin": "build/index.js"
   },
   "scripts": {
     "build": "tsc",
