@@ -275,7 +275,7 @@ Estas ferramentas acessam dados abertos do Mercado Bitcoin. Não requerem chave 
 | ---------- | --------- |
 | `mb_get_orderbook` | Livro de ofertas (ordens de compra e venda) de um par de negociação. Mostra preços e quantidades em cada nível |
 | `mb_get_trades` | Histórico de negociações executadas recentemente. Útil para ver atividade de mercado e preços praticados |
-| `mb_get_symbols` | Lista todos os pares de negociação disponíveis (+1900 símbolos) com metadados: tipo de ativo, preços mínimos/máximos, volumes |
+| `mb_get_symbols` | Lista pares de negociação com metadados (tipo de ativo, preços, volumes). Por padrão retorna apenas pares BRL em páginas de 200. Suporta paginação e filtro por símbolo específico |
 | `mb_get_tickers` | Cotações atuais: último preço, melhor compra, melhor venda, máxima, mínima, abertura e volume 24h |
 | `mb_get_candles` | Dados OHLCV (abertura, máxima, mínima, fechamento, volume) para gráficos e análise técnica. Resoluções: 1m, 15m, 1h, 3h, 1d, 1w, 1M |
 | `mb_get_asset_fees` | Taxas de depósito e saque por ativo, incluindo mínimos e confirmações necessárias por rede blockchain |
@@ -288,7 +288,7 @@ Ferramentas de consulta da sua conta. Requerem `MB_API_KEY` e `MB_API_SECRET`.
 | Ferramenta | Descrição |
 | ---------- | --------- |
 | `mb_list_accounts` | Lista todas as suas contas/carteiras no Mercado Bitcoin. Retorna IDs necessários para outras operações |
-| `mb_get_balances` | Saldos de todos os ativos: disponível, em ordens abertas (bloqueado) e total |
+| `mb_get_balances` | Saldos dos seus ativos: disponível, em ordens abertas (bloqueado) e total. Por padrão exibe apenas ativos com saldo |
 | `mb_get_tier` | Nível de tier da conta — níveis mais altos possuem taxas de negociação menores |
 | `mb_get_trading_fees` | Taxas de maker (quem coloca ordem no livro) e taker (quem executa ordem existente) para um par específico |
 | `mb_get_positions` | Posições abertas com preço médio de entrada, quantidade e lado (compra/venda). Útil para análise de portfólio e P&L |
@@ -300,7 +300,7 @@ Ferramentas de negociação. **Todas as operações que movem dinheiro passam pe
 
 | Ferramenta | Descrição |
 | ---------- | --------- |
-| `mb_place_order` | Cria uma ordem de compra ou venda. Tipos disponíveis: `market` (executada imediatamente ao melhor preço), `limit` (executada a um preço específico ou melhor), `stoplimit` (ativada quando um preço gatilho é atingido) e `post-only` (rejeitada se for executar imediatamente, garantindo taxa de maker). **Requer confirmação** |
+| `mb_place_order` | Cria uma ordem de compra ou venda. Aceita valor em reais (`cost`, ex: "compre R$ 500 de BTC") ou quantidade (`qty`, ex: "compre 3 unidades"). Tipos: `market`, `limit`, `stoplimit` e `post-only`. **Requer confirmação** |
 | `mb_list_orders` | Lista ordens de um par específico com filtros: status, lado (compra/venda), período |
 | `mb_get_order` | Detalhes completos de uma ordem: execuções parciais (fills), preço médio, taxas cobradas |
 | `mb_cancel_order` | Cancela uma ordem aberta específica. **Requer confirmação** |
@@ -341,37 +341,46 @@ A IA usa `mb_list_accounts` para encontrar seu ID de conta, depois `mb_get_balan
 
 A IA usa `mb_get_tickers` para o preço atual e `mb_get_candles` com resolução diária para o histórico. Pode analisar tendências, suportes e resistências.
 
-### 3. Compra Simples
+### 3. Compra por Valor em Reais
 
-> "Compre R$ 200 de Bitcoin a mercado"
+> "Compre R$ 500 de Solana a mercado"
 
-A IA usa `mb_place_order` com `type=market`, `side=buy`, `cost=200`. Primeiro mostra a prévia:
+A IA usa `mb_place_order` com `cost=500`. O MCP consulta a cotação atual, calcula a quantidade equivalente e mostra a prévia:
 
 ```text
 CONFIRMAÇÃO NECESSÁRIA: Criar Ordem
-  Símbolo: BTC-BRL
+  Símbolo: SOL-BRL
   Lado: COMPRA
   Tipo: market
-  Custo: R$ 200,00
+  Custo: R$ 500,00
+  Preço ask usado: R$ 812,50
+  Qtd calculada: 0.61538461
+  AVISO: O preço pode variar entre esta prévia e a execução (slippage)
 
 Para prosseguir, confirme a operação.
 ```
 
 Somente após sua aprovação a ordem é executada.
 
-### 4. Venda com Limite de Preço
+### 4. Compra por Quantidade
+
+> "Compre 3 unidades da Renda Fixa Digital RFDB11-BRL"
+
+A IA usa `mb_place_order` com `qty=3`. Ideal para ativos que fazem mais sentido em unidades inteiras, como Renda Fixa Digital, Renda Variável Digital e Fan Tokens.
+
+### 5. Venda com Limite de Preço
 
 > "Coloque uma ordem de venda de 0.01 BTC a R$ 350.000"
 
 A IA usa `mb_place_order` com `type=limit`, `side=sell`, `qty=0.01`, `limitPrice=350000`. A ordem ficará no livro até ser executada ou cancelada.
 
-### 5. Acompanhamento de Ordens
+### 6. Acompanhamento de Ordens
 
 > "Quais são minhas ordens abertas?"
 
 A IA usa `mb_list_all_orders` com `status=working` para listar todas as ordens pendentes em todos os pares.
 
-### 6. Gestão de Risco por Agente Autônomo
+### 7. Gestão de Risco por Agente Autônomo
 
 Um agente OpenClaw ou Claude Code pode ser configurado para:
 
@@ -380,7 +389,7 @@ Um agente OpenClaw ou Claude Code pode ser configurado para:
 - Cancelar ordens que não foram executadas após certo tempo
 - Respeitar limites configurados em `MB_MAX_ORDER_BRL` e `MB_DAILY_LIMIT_BRL`
 
-### 7. Consulta de Taxas Antes de Operar
+### 8. Consulta de Taxas Antes de Operar
 
 > "Quais as taxas para negociar ETH-BRL e para sacar ETH?"
 
