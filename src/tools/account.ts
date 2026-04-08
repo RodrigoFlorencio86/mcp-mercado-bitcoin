@@ -36,15 +36,26 @@ export function registerAccountTools(
   // ─── 2. Get Balances ───
   server.tool(
     "mb_get_balances",
-    "Get all asset balances for an account. " +
-    "Shows available, on_hold (in open orders), and total for each asset.",
+    "Get asset balances for an account. " +
+    "Shows available, on_hold (in open orders), and total for each asset. " +
+    "By default, only returns assets with balance > 0 (most common use case). " +
+    "Set hide_zero=false to include all 1900+ assets.",
     {
       accountId: z.string().describe("Account ID (use mb_list_accounts to find it)"),
+      hide_zero: z.boolean().default(true).describe("Hide assets with zero balance (default: true)"),
     },
-    async ({ accountId }) => {
+    async ({ accountId, hide_zero }) => {
       const authErr = requireAuth(config);
       if (authErr) return err(authErr);
-      const data = await client.authGet(`/accounts/${accountId}/balances`);
+      const data = await client.authGet<Array<{ symbol: string; available: string; on_hold: string; total: string }>>(
+        `/accounts/${accountId}/balances`,
+      );
+
+      if (hide_zero && Array.isArray(data)) {
+        const filtered = data.filter((b) => parseFloat(b.total) > 0);
+        return ok(filtered);
+      }
+
       return ok(data);
     },
   );

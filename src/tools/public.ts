@@ -46,15 +46,51 @@ export function registerPublicTools(server: McpServer, client: MBClient): void {
   // ─── 3. Symbols ───
   server.tool(
     "mb_get_symbols",
-    "List all available trading symbols/pairs on Mercado Bitcoin with metadata " +
-    "(min/max price, min/max volume, asset type). Supports 1900+ symbols including " +
-    "crypto, fan tokens, DeFi, and tokenized assets.",
+    "List available trading symbols/pairs on Mercado Bitcoin with metadata " +
+    "(min/max price, min/max volume, asset type).\n\n" +
+    "Without a filter, returns only BRL pairs (most common) in pages of 200. " +
+    "Use 'symbols' for specific pairs or 'offset' to paginate through all available pairs.\n" +
+    "Mercado Bitcoin has 1900+ symbols including crypto, fan tokens, DeFi, and tokenized assets.",
     {
-      symbols: z.string().optional().describe("Comma-separated filter, e.g. BTC-BRL,ETH-BRL. Omit for all."),
+      symbols: z.string().optional().describe("Comma-separated filter, e.g. BTC-BRL,ETH-BRL. Overrides pagination."),
+      limit: z.number().default(200).describe("Max symbols per page (default: 200)"),
+      offset: z.number().default(0).describe("Skip first N results for pagination (default: 0)"),
+      brl_only: z.boolean().default(true).describe("When true (default) and no filter, returns only -BRL pairs"),
     },
-    async ({ symbols }) => {
-      const data = await client.publicGet("/symbols", { symbols });
-      return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+    async ({ symbols, limit, offset, brl_only }) => {
+      // If specific symbols requested, just pass through
+      if (symbols) {
+        const data = await client.publicGet("/symbols", { symbols });
+        return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+      }
+
+      // Fetch all and apply filtering + pagination on our side
+      const data = await client.publicGet<Record<string, unknown>[]>("/symbols");
+      let items = Array.isArray(data) ? data : [];
+
+      if (brl_only) {
+        items = items.filter((s) => {
+          const sym = (s as Record<string, unknown>)["symbol"];
+          return typeof sym === "string" && sym.endsWith("-BRL");
+        });
+      }
+
+      const total = items.length;
+      const page = items.slice(offset, offset + limit);
+      const hasMore = offset + limit < total;
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            total,
+            showing: `${offset + 1}-${Math.min(offset + limit, total)} de ${total}`,
+            hasMore,
+            nextOffset: hasMore ? offset + limit : null,
+            symbols: page,
+          }, null, 2),
+        }],
+      };
     },
   );
 

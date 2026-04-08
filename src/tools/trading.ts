@@ -31,6 +31,8 @@ export function registerTradingTools(
     "1. First call with confirm=false (default) → returns a preview of the order\n" +
     "2. Show the preview to the user and ask for approval\n" +
     "3. If approved, call again with confirm=true → executes the order\n\n" +
+    "For market buy orders, you can use 'cost' (value in BRL, e.g. 'buy R$500 of BTC') " +
+    "instead of 'qty'. The MCP will automatically calculate the quantity based on the current market price.\n\n" +
     "Order types:\n" +
     "- market: executes immediately at best available price\n" +
     "- limit: executes at limitPrice or better\n" +
@@ -74,12 +76,37 @@ export function registerTradingTools(
       if (type === "stoplimit" && (!limitPrice || !stopPrice))
         return err("Ordem stoplimit requer 'limitPrice' e 'stopPrice'.");
 
+      // Convert cost → qty for market buy orders
+      let resolvedQty = qty;
+      let costConversion: { askPrice: string; calculatedQty: string } | null = null;
+
+      if (type === "market" && side === "buy" && cost && !qty) {
+        try {
+          const tickers = await client.publicGet<Array<{ pair: string; sell: string }>>(
+            "/tickers",
+            { symbols: symbol },
+          );
+          if (!Array.isArray(tickers) || tickers.length === 0) {
+            return err(`Não foi possível obter a cotação de ${symbol} para converter o valor em quantidade.`);
+          }
+          const askPrice = tickers[0].sell;
+          if (!askPrice || !isValidPositive(askPrice)) {
+            return err(`Cotação inválida recebida para ${symbol}: ${askPrice}`);
+          }
+          const calcQty = Number(cost) / Number(askPrice);
+          resolvedQty = calcQty.toFixed(8);
+          costConversion = { askPrice, calculatedQty: resolvedQty };
+        } catch (e) {
+          return err(`Erro ao consultar cotação de ${symbol}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+
       // Estimate order value in BRL for spending guards
       let estimatedBrl = 0;
       if (cost) {
         estimatedBrl = Number(cost);
-      } else if (qty && limitPrice) {
-        estimatedBrl = Number(qty) * Number(limitPrice);
+      } else if (resolvedQty && limitPrice) {
+        estimatedBrl = Number(resolvedQty) * Number(limitPrice);
       }
 
       if (estimatedBrl > 0) {
@@ -93,13 +120,18 @@ export function registerTradingTools(
           "Symbol": symbol,
           "Side": side.toUpperCase(),
           "Type": type,
-          "Quantity": qty,
+          "Quantity": resolvedQty,
           "Cost": cost ? `R$ ${cost}` : undefined,
           "Limit Price": limitPrice ? `R$ ${limitPrice}` : undefined,
           "Stop Price": stopPrice ? `R$ ${stopPrice}` : undefined,
-          "Estimated Value": estimatedBrl > 0 ? `R$ ${estimatedBrl.toFixed(2)}` : "will be determined at execution",
-          "External ID": externalId,
+          "Estimated Value": estimatedBrl > 0 ? `R$ ${estimatedBrl.toFixed(2)}` : "será determinado na execução",
         };
+        if (costConversion) {
+          details["Preço ask usado"] = `R$ ${costConversion.askPrice}`;
+          details["Qtd calculada"] = costConversion.calculatedQty;
+          details["AVISO"] = "O preço pode variar entre esta prévia e a execução (slippage)";
+        }
+        if (externalId) details["External ID"] = externalId;
         return {
           content: [{
             type: "text" as const,
@@ -109,13 +141,12 @@ export function registerTradingTools(
       }
 
       if (config.dryRun) {
-        return ok({ dryRun: true, message: "Order would be placed", symbol, side, type, qty, cost, limitPrice, stopPrice });
+        return ok({ dryRun: true, message: "Order would be placed", symbol, side, type, qty: resolvedQty, cost, limitPrice, stopPrice });
       }
 
-      // Build request body
+      // Build request body — always use qty (cost is not accepted by MB API)
       const body: Record<string, unknown> = { side, type };
-      if (qty) body.qty = qty;
-      if (cost) body.cost = cost;
+      body.qty = resolvedQty;
       if (limitPrice) body.limitPrice = limitPrice;
       if (stopPrice) body.stopPrice = stopPrice;
       if (externalId) body.externalId = externalId;
