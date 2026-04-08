@@ -1,6 +1,9 @@
 # VS Code settings (contém chaves de API)
 .vscode/settings.json
 
+# Claude Code local settings
+.claude/
+
 # Environment variables
 .env
 .env.*
