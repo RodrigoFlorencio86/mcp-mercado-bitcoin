@@ -1,0 +1,23 @@
+# VS Code settings (contém chaves de API)
+.vscode/settings.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Swagger reference (downloaded)
+swagger_v4.yaml

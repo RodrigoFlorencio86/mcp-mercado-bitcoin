@@ -1,0 +1,51 @@
+{
+  "name": "mcp-mercado-bitcoin",
+  "version": "1.0.0",
+  "description": "MCP Server for Mercado Bitcoin — trade, monitor and manage your crypto portfolio via any LLM or AI agent",
+  "type": "module",
+  "bin": {
+    "mcp-mercado-bitcoin": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node build/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "mercado-bitcoin",
+    "crypto",
+    "trading",
+    "model-context-protocol",
+    "claude",
+    "llm",
+    "ai-agent"
+  ],
+  "author": "RodrigoFlorencio86",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RodrigoFlorencio86/mcp-mercado-bitcoin.git"
+  },
+  "homepage": "https://github.com/RodrigoFlorencio86/mcp-mercado-bitcoin#readme",
+  "bugs": {
+    "url": "https://github.com/RodrigoFlorencio86/mcp-mercado-bitcoin/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
