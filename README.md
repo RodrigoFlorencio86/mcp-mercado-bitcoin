@@ -134,6 +134,11 @@ O MCP utiliza o fluxo **OAuth2 Client Credentials** do Mercado Bitcoin:
 8. Clique em **Continuar** e siga as instruções de confirmação (2FA)
 9. Salve o `client_id` (Chave de API) e o `client_secret` (Segredo da API) em local seguro
 
+Importante: a imagem abaixo mostra que o Segredo da API é apresentado uma única vez no pop up e deve ser copiado/salvo imediatamente, pois não aparecerá novamente. Já o ID é a informação abaixo do pop-up e ficará disponível para consulta futura.
+
+<img width="1113" height="753" alt="perfil5" src="https://github.com/user-attachments/assets/a564855a-fb1f-496b-9c9f-003c800a641b" />
+Perdeu o Segredo da API? Você precisa deletar a chave de API no ícone de lixeira e gerar uma nova para ter acesso a um novo segredo.
+
 ### Configurando a chave no seu Agente de IA
 
 Cada agente ou cliente de IA tem uma forma diferente de receber e armazenar chaves de API. Converse com o agente que você utiliza e garanta que suas credenciais estão registradas de forma segura (variáveis de ambiente, cofre de segredos, etc.).
