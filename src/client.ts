@@ -75,6 +75,20 @@ export class MBClient {
       const body = await res.text();
       throw new Error(`Mercado Bitcoin API error (HTTP ${res.status}): ${body}`);
     }
-    return (await res.json()) as T;
+
+    if (res.status === 204) {
+      return {} as T;
+    }
+
+    const text = await res.text();
+    if (!text) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return { raw: text } as T;
+    }
   }
 }

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -11,13 +14,23 @@ import { registerAccountTools } from "./tools/account.js";
 import { registerTradingTools } from "./tools/trading.js";
 import { registerWalletTools } from "./tools/wallet.js";
 
+// Read version from package.json at startup
+let version = "1.0.0";
+try {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
+  version = pkg.version;
+} catch {
+  // Fallback to hardcoded version
+}
+
 const config = loadConfig();
 const client = new MBClient(config);
 const tracker = new SpendingTracker(config);
 
 const server = new McpServer({
   name: "mcp-mercado-bitcoin",
-  version: "1.0.0",
+  version,
 });
 
 // ─── Status tool (always available) ───
@@ -68,7 +81,7 @@ if (config.operationMode === "full") {
 // ─── Start server ───
 async function main() {
   console.error("╔══════════════════════════════════════════════╗");
-  console.error("║       MCP Mercado Bitcoin v1.0.0             ║");
+  console.error(`║       MCP Mercado Bitcoin v${version.padEnd(18)}║`);
   console.error("╠══════════════════════════════════════════════╣");
   console.error(`║  Mode:         ${config.operationMode.padEnd(30)}║`);
   console.error(`║  Auth:         ${(client.hasCredentials ? "configured" : "NOT SET").padEnd(30)}║`);

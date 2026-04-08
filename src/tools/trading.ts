@@ -12,6 +12,11 @@ function ok(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
 }
 
+function isValidPositive(s: string): boolean {
+  const n = Number(s);
+  return !isNaN(n) && isFinite(n) && n > 0;
+}
+
 export function registerTradingTools(
   server: McpServer,
   client: MBClient,
@@ -48,6 +53,26 @@ export function registerTradingTools(
       if (authErr) return err(authErr);
       const modeErr = requireMode(config, "trading");
       if (modeErr) return err(modeErr);
+
+      // Validate numeric fields
+      if (qty !== undefined && !isValidPositive(qty))
+        return err(`Quantidade inválida: "${qty}". Informe um número positivo válido.`);
+      if (cost !== undefined && !isValidPositive(cost))
+        return err(`Custo inválido: "${cost}". Informe um número positivo válido.`);
+      if (limitPrice !== undefined && !isValidPositive(limitPrice))
+        return err(`Preço limite inválido: "${limitPrice}". Informe um número positivo válido.`);
+      if (stopPrice !== undefined && !isValidPositive(stopPrice))
+        return err(`Preço stop inválido: "${stopPrice}". Informe um número positivo válido.`);
+
+      // Validate order type requirements
+      if (type === "market" && side === "buy" && !qty && !cost)
+        return err("Ordem market de compra requer 'qty' (quantidade) ou 'cost' (valor em reais).");
+      if (type === "market" && side === "sell" && !qty)
+        return err("Ordem market de venda requer 'qty' (quantidade a vender).");
+      if ((type === "limit" || type === "post-only") && !limitPrice)
+        return err(`Ordem do tipo ${type} requer 'limitPrice' (preço limite).`);
+      if (type === "stoplimit" && (!limitPrice || !stopPrice))
+        return err("Ordem stoplimit requer 'limitPrice' e 'stopPrice'.");
 
       // Estimate order value in BRL for spending guards
       let estimatedBrl = 0;
